@@ -1,0 +1,12 @@
+uvicorn[standard]
+# loguru
+# pydantic
+# python-dotenv
+# pymysql
+# uuid
+# hashlib
+fastapi
+sqlalchemy
+requests
+ragflow_sdk
+openai

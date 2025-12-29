@@ -82,7 +82,7 @@ async def run_fake_research(session_id: str, user_input: dict):
                         },
                     )
                 )
-
+   
             print("\n[Waiting for frontend clarification answer...]")
 
             # 🔒 阻塞等待前端回复（关键）
@@ -335,18 +335,18 @@ async def run_fake_research(session_id: str, user_input: dict):
     # =====================================================
     # 3. analyze / assistant
     # =====================================================
-    await asyncio.sleep(1)
-    await event_bus.emit(
-        sse_event(
-            "assistant_chunk",
-            {
-                "content": (
-                    "Several studies indicate that PM2.5 exposure triggers inflammatory "
-                    "responses, which may interact with stress-regulation systems."
-                )
-            },
-        )
-    )
+    # await asyncio.sleep(1)
+    # await event_bus.emit(
+    #     sse_event(
+    #         "assistant_chunk",
+    #         {
+    #             "content": (
+    #                 "Several studies indicate that PM2.5 exposure triggers inflammatory "
+    #                 "responses, which may interact with stress-regulation systems."
+    #             )
+    #         },
+    #     )
+    # )
 
     # await asyncio.sleep(1)
     # await event_bus.emit(

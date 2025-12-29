@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
 
 from event_bus import event_bus
-from fake_worker_copy import run_fake_research, get_clarification_queue
+from fake_worker_copy1 import run_fake_research, get_clarification_queue
 from utils.sse_utils import sse_event
 
 

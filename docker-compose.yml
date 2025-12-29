@@ -7,9 +7,43 @@ services:
       MYSQL_ROOT_PASSWORD: 123456
       MYSQL_DATABASE: deepresearch
     ports:
-      - "13306:3306"   # ⭐ 左边是宿主机端口
+      - "13306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+
+  backend:
+    env_file:
+      - .env
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: deepresearch-backend
+    restart: always
+    depends_on:
+      - mysql
+
+    # 如果你的 inter_face 内部会连接数据库，建议用环境变量传入
+    environment:
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_USER: root
+      DB_PASSWORD: 123456
+      DB_NAME: deepresearch
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+
+      # 可选：如果你后端会起 HTTP 服务并监听端口
+      # PORT: "8000"
+
+    # 如果后端对外提供接口（FastAPI/SSE），把端口映射出去
+    # 如果只是 CLI worker，不需要 ports
+    ports:
+      - "8000:8000"
+
+    # 把缓存/数据目录持久化（按你实际路径改）
+    volumes:
+      - ./backend/cache:/app/cache     # ⭐ bind mount
+      - ./backend/logs:/app/logs       # ⭐ 建议一起改
 
 volumes:
   mysql_data:

@@ -2,7 +2,7 @@ from sqlalchemy import create_engine, text
 
 # 1. 数据库连接信息（按你当前环境）
 DB_URL = (
-    "mysql+pymysql://backend_user:backend_pass"
+    "mysql+pymysql://backend_user:123456"
     "@127.0.0.1:13306/deepresearch"
 )
 
