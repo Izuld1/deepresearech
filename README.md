@@ -1,3 +1,112 @@
+
+
+# deepresearch
+
+---
+
+## 🚀 快速开始（Quick Start）
+
+本指南将帮助你使用 **Docker** 在本地快速运行 **DeepResearch** 项目。
+
+---
+
+### 1️⃣ 克隆项目
+
+```bash
+git clone https://github.com/Izuld1/deepresearch.git
+cd deepresearch
+```
+
+---
+
+### 2️⃣ 配置环境变量
+
+从示例文件创建本地环境变量配置：
+
+```bash
+cp .env.example .env
+```
+
+编辑 `.env` 文件，填写必要参数：
+
+```env
+# 数据库配置
+MYSQL_ROOT_PASSWORD=your_password
+MYSQL_DATABASE=deepresearch
+
+# 大模型 / API Key
+DASHSCOPE_API_KEY=your_api_key
+```
+
+> ⚠️ `.env` 文件包含敏感信息，请勿提交到 GitHub。
+
+---
+
+### 3️⃣ 构建并启动服务
+
+确保已安装 Docker 和 Docker Compose，然后执行：
+
+```bash
+docker compose up -d --build
+```
+
+该命令会启动：
+
+* MySQL 数据库
+* 后端服务（FastAPI / 研究流程 Worker）
+* 前端服务（如已启用）
+
+---
+
+### 4️⃣ 访问服务
+
+* **前端界面**
+  👉 [http://localhost:5173（开发模式）](http://localhost:5173（开发模式）)
+  👉 [http://localhost:4173（预览模式）](http://localhost:4173（预览模式）)
+
+* **后端 API / SSE 接口**
+  👉 [http://localhost:8000](http://localhost:8000)
+
+---
+
+#### 5️⃣ 停止服务
+
+```bash
+docker compose down
+```
+
+---
+
+## 📝 说明
+
+* 清空研究缓存（可选）：
+
+  ```bash
+  rm -rf backend/cache/*
+  ```
+* 前后端完全解耦，可单独启动。
+* 开发阶段可不使用前端 Docker，直接本地运行前端：
+
+  ```bash
+  cd frontend
+  npm install
+  npm run dev
+  ```
+
+---
+
+## ✅ 运行环境要求
+
+* Docker（v20+）
+* Docker Compose（v2+）
+* Git
+
+---
+
+
+
+
+
 ## 整体流程
 ### 解析⽤户研究需求  
 通过最多五轮问答，明确研究⽬标、研究对象、使⽤的⽂献范围与输出形式（综述/报告等） 
