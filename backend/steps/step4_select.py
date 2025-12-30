@@ -3,8 +3,8 @@
 # =========================================================
 
 from typing import Dict, Any, List
-from interface_DB.ragflow import search_list_ragflow
-
+# from interface_DB.ragflow import search_list_ragflow
+from tests.test_ragflow_interface import search_list_ragflow
 
 # =========================================================
 # Step 4A: Sub-goal Retrieval（仅查询，不评估）

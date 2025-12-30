@@ -1,4 +1,5 @@
 import requests
+# from ragflow_adapter import RAGFlowAdapter
 from interface_DB.ragflow_adapter import RAGFlowAdapter
 from typing import Dict, List
 
@@ -7,8 +8,8 @@ def search_ragflow_nginx(
     base_url: str = "http://localhost",
     kb_id: str = "0f645ecadccb11f0932f3aa1a0b92c19",
     question: str = "",
-    cookie: str = "csrftoken=t8TdUhLr32crb7XVmfMa2olsUOdOmmi5; sessionid=22dzy9wiwt1vgdprixyyrb6ggf7860xh; session=.eJwdyzkSgCAMAMC_pLYIETD4GQZMMtqCVI5_9yi32Avy6NryIbDCssWExVhCFecMU6k-klnYPKOrCSbI1rTvsJ5t6Ku_BVJhQ1Zk-hrHWJjmpZBPHlHgfgAYaxzx.aUtuJw.o9els7G8H1RcwV_JuRQOO7GGUL8; ajs_anonymous_id=f977280f-c6cf-4538-8a2a-ccbf2f87b924; _streamlit_xsrf=2|15c91ec1|afb8310121e9df1dec36d36485ad3644|1766556278",
-    authorization: str = "IjUyZWQ4NjBjZTA4MjExZjA4NjZhODIzN2EyNDk0MDBkIg.aUtuJw.1KXHjCgcqKceTctGysoaTdTArM4",
+    cookie: str = "csrftoken=t8TdUhLr32crb7XVmfMa2olsUOdOmmi5; sessionid=22dzy9wiwt1vgdprixyyrb6ggf7860xh; ajs_anonymous_id=f977280f-c6cf-4538-8a2a-ccbf2f87b924; _streamlit_xsrf=2|15c91ec1|afb8310121e9df1dec36d36485ad3644|1766556278; session=.eJwdyzsSgCAMBcC7pLYARj7xMkwCL6MtauV4dz_lFntRPXeMunVaKLfETqz0qN17cyw6p2AW21ycV6aJqg3sKy3HOPHqb0nQkAWIsXxNlQWBWTi17JHpfgA0Bx5R.aVOLVA.PLf9lv34UT1rx43GwdEMC1KM5DU",
+    authorization: str = "IjZhZWNkZmU4ZTU1ODExZjBiYjlhZTI5OWE5NmM3MWU3Ig.aVOLVA.VSTzKB859EnoPry4R9UqqaKsy0k",
     size: int = 10,
     top_k: int = 1024,
     similarity_threshold: float = 0.2,
@@ -93,6 +94,13 @@ if __name__ == "__main__":
     meta = aaa["meta"]
     print("=== Meta Information ===")
     print(meta)
+
+
+    # mess = search_ragflow_nginx(question="腕骨骨折？")
+    # print(mess)
+    # with open("backend/cache/ragflow_output_old.json", "w", encoding="utf-8") as f:
+    #     # for mes in mess :
+    #         print(mess,file=f)
         # print("-" * 20)
 
 
