@@ -1,5 +1,5 @@
 import requests
-from interface_vector.ragflow_adapter import RAGFlowAdapter
+from interface_DB.ragflow_adapter import RAGFlowAdapter
 from typing import Dict, List
 
 def search_ragflow_nginx(

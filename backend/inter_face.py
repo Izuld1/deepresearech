@@ -1,13 +1,19 @@
 # inter_face.py
 import uuid
 import asyncio
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
 
 from event_bus import event_bus
 from fake_worker_copy1 import run_fake_research, get_clarification_queue
 from utils.sse_utils import sse_event
+from interface_DB.mysql_user import (
+    register_user,
+    login_user,
+    get_current_user,
+)
+
 
 
 app = FastAPI()
@@ -22,6 +28,79 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# =========================================================
+# Auth 接口
+# =========================================================
+
+@app.post("/api/auth/register")
+async def api_register(request: Request):
+    """
+    用户注册
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON")
+
+    try:
+        user = register_user(
+            username=body.get("username"),
+            email=body.get("email"),
+            password=body.get("password"),
+        )
+        return JSONResponse(user)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/api/auth/login")
+async def api_login(request: Request):
+    """
+    用户登录
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON")
+
+    try:
+        result = login_user(
+            username=body.get("username"),
+            password=body.get("password"),
+        )
+        return JSONResponse(result)
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=str(e))
+
+
+@app.get("/api/auth/me")
+async def api_me(authorization: str = Header(None)):
+    """
+    校验 token，获取当前用户
+    """
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing token")
+
+    token = authorization.split(" ", 1)[1]
+
+    try:
+        user = get_current_user(token)
+        return {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+        }
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+
+# =========================================================
+# Research 接口（你原有的，未改动）
+# =========================================================
+
+
 
 # -----------------------------
 # 接口 1：启动 research

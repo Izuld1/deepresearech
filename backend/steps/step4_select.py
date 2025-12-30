@@ -3,7 +3,7 @@
 # =========================================================
 
 from typing import Dict, Any, List
-from interface_vector.ragflow import search_list_ragflow
+from interface_DB.ragflow import search_list_ragflow
 
 
 # =========================================================

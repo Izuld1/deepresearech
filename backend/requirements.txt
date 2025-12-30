@@ -1,4 +1,3 @@
-uvicorn[standard]
 # loguru
 # pydantic
 # python-dotenv
@@ -6,7 +5,12 @@ uvicorn[standard]
 # uuid
 # hashlib
 fastapi
-sqlalchemy
-requests
-ragflow_sdk
 openai
+passlib
+pymysql
+python-dotenv
+python-jose[cryptography]
+ragflow_sdk
+requests
+sqlalchemy
+uvicorn[standard]
