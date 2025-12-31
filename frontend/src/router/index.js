@@ -3,6 +3,7 @@ import { authUtils } from '../utils/auth.js'
 import Login from '../views/Login.vue'
 import Register from '../views/Register.vue'
 import Research from '../views/Research.vue'
+import KnowledgeBase from '../views/KnowledgeBase.vue'
 
 const routes = [
   {
@@ -19,6 +20,11 @@ const routes = [
     path: '/register',
     name: 'Register',
     component: Register
+  },
+  {
+    path: '/knowledge',
+    name: 'KnowledgeBase',
+    component: KnowledgeBase
   }
 ]
 

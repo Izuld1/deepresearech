@@ -14,3 +14,4 @@ ragflow_sdk
 requests
 sqlalchemy
 uvicorn[standard]
+python-multipart

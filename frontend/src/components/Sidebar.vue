@@ -11,6 +11,10 @@
     <div class="chat-history-item">
       HPA 轴相关研究
     </div>
+
+    <div class="sidebar-footer">
+      <a href="/knowledge" class="kb-link">知识库管理</a>
+    </div>
   </aside>
 </template>
 
@@ -24,6 +28,8 @@
   color: #d1d5db;
   padding: 12px;
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .sidebar-title {
@@ -45,6 +51,29 @@
 
 .chat-history-item.active {
   background-color: #374151;
+  color: white;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid #374151;
+}
+
+.kb-link {
+  display: block;
+  padding: 10px;
+  background-color: #374151;
+  color: #d1d5db;
+  text-align: center;
+  text-decoration: none;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.kb-link:hover {
+  background-color: #4b5563;
   color: white;
 }
 </style>
