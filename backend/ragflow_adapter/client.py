@@ -1,23 +1,25 @@
 import os
-from ragflow import RAGFlow
+from ragflow_sdk import RAGFlow
 
 class RAGFlowClient:
     """
-    RAGFlow 官方 Python SDK 的统一封装
+    RAGFlow SDK Client 封装
+    - 只负责初始化 SDK
+    - 不掺杂任何业务逻辑
     """
 
     def __init__(self):
-        self.api_key = os.getenv("RAGFLOW_API_KEY")
-        self.base_url = os.getenv("RAGFLOW_BASE_URL")
+        api_key = os.getenv("RAGFLOW_API_KEY")
+        base_url = os.getenv("RAGFLOW_BASE_URL")
 
-        if not self.api_key or not self.base_url:
-            raise RuntimeError("RAGFLOW_API_KEY or RAGFLOW_BASE_URL not set")
+        if not api_key or not base_url:
+            raise RuntimeError("RAGFLOW_API_KEY / RAGFLOW_BASE_URL not set")
 
-        self.client = RAGFlow(
-            api_key=self.api_key,
-            base_url=self.base_url,
+        self._client = RAGFlow(
+            api_key=api_key,
+            base_url=base_url,
         )
 
-    # 统一暴露底层 client（必要时）
-    def raw(self) -> RAGFlow:
-        return self.client
+    @property
+    def client(self) -> RAGFlow:
+        return self._client

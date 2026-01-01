@@ -1,14 +1,3 @@
 class RAGFlowError(Exception):
-    """RAGFlow 通用异常"""
-
-
-class KnowledgeBaseNotFound(RAGFlowError):
-    pass
-
-
-class DocumentNotFound(RAGFlowError):
-    pass
-
-
-class RAGFlowRequestError(RAGFlowError):
+    """所有 RAGFlow 层异常的统一类型"""
     pass
