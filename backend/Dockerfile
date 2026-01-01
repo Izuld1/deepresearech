@@ -1,4 +1,5 @@
-FROM python:3.11-slim
+# FROM python:3.11-slim
+FROM python:3.11-slim-bookworm
 
 # 避免输出缓存，方便日志
 ENV PYTHONDONTWRITEBYTECODE=1

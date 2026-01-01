@@ -38,7 +38,7 @@ from interface_DB.MySQL_user_crud import (
 from interface_DB.MySQL_user import User
 from interface_DB.MySQL_knowledge_space import KnowledgeSpace
 from interface_DB.MySQL_document import Document
-
+from interface_DB.MySQL_knowledge_space_crud import get_knowledge_space
 # =========================
 # Service 层
 # =========================
@@ -51,6 +51,7 @@ from interface_DB.knowledge_service import (
     list_documents_service,
     rename_document_service,
     delete_document_service,
+    parse_document_service,
 )
 
 # =========================================================
@@ -295,7 +296,7 @@ MAX_FILE_SIZE = 20 * 1024 * 1024  # 20MB
 UPLOAD_ROOT = "cache/uploads"
 
 
-@app.post("/api/documents/upload")
+# @app.post("/api/documents/upload")
 @app.post("/api/documents/upload")
 async def api_upload_document_real(
     knowledge_space_id: int = Form(...),   # ✅ 关键在这里
@@ -397,6 +398,51 @@ async def api_delete_document(
         return {"status": "ok"}
     finally:
         db.close()
+
+
+
+
+@app.post("/api/documents/{document_id}/parse")
+async def api_parse_document(
+    document_id: int,
+    knowledge_space_id: int,
+    user: User = Depends(get_current_user_from_header),
+):
+    """
+    触发文档解析（RAGFlow）
+
+    语义：
+    - 仅负责“触发解析任务”
+    - 不等待解析完成
+    - 状态由 Service 层写入 parsing / failed
+    """
+    db = SessionLocal()
+    try:
+        # 1. 校验知识库归属（可选但推荐）
+        ks = get_knowledge_space(
+            db,
+            knowledge_space_id=knowledge_space_id,
+            owner_id=user.id,
+        )
+        if not ks or not ks.ragflow_knowledge_id:
+            raise ValueError("Knowledge space not bound to RAGFlow")
+
+        # 2. 触发解析
+        updated_doc = parse_document_service(
+            db,
+            document_id=document_id,
+            dataset_id=ks.ragflow_knowledge_id,
+        )
+
+        return {
+            "status": "ok",
+            "document_id": document_id,
+            "parse_status": updated_doc.status,
+        }
+
+    finally:
+        db.close()
+
 
 
 # =========================================================

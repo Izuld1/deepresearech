@@ -62,3 +62,10 @@ class Document(Base):
         server_default=func.now(),
         nullable=False,
     )
+
+    # ========== 关键添加：补充 ragflow_document_id 字段 ==========
+    ragflow_document_id = Column(
+        String(64),  # 匹配数据库中 VARCHAR(64) 的定义
+        nullable=True,  # 初始为空，上传后赋值
+        index=True,  # 可选：添加索引，方便查询
+    )

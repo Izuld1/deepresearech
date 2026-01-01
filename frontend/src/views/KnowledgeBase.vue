@@ -73,6 +73,13 @@
                 </td>
                 <td>{{ formatDate(doc.created_at) }}</td>
                 <td>
+                  <button 
+                    @click="parseDocument(doc.id, doc.status)" 
+                    :disabled="isParseDisabled(doc.status)"
+                    :class="['btn-parse', { disabled: isParseDisabled(doc.status) }]"
+                  >
+                    {{ getParseButtonText(doc.status) }}
+                  </button>
                   <button @click="deleteDocument(doc.id)" class="btn-delete">删除</button>
                 </td>
               </tr>
@@ -387,11 +394,56 @@ function toggleKbMenu(kbId) {
 function getStatusText(status) {
   const statusMap = {
     uploaded: '已上传',
+    parsing: '解析中',
     parsed: '已解析',
     indexed: '已索引',
     failed: '失败'
   }
   return statusMap[status] || status
+}
+
+function getParseButtonText(status) {
+  const textMap = {
+    uploaded: '解析',
+    parsing: '解析中…',
+    parsed: '已解析',
+    indexed: '已解析',
+    failed: '重新解析'
+  }
+  return textMap[status] || '解析'
+}
+
+function isParseDisabled(status) {
+  return status === 'parsing' || status === 'indexed'
+}
+
+async function parseDocument(docId, currentStatus) {
+  if (isParseDisabled(currentStatus)) return
+
+  if (!selectedKbId.value) {
+    alert('请先选择知识库')
+    return
+  }
+
+  try {
+    const response = await apiRequest(
+      `http://localhost:8000/api/documents/${docId}/parse?knowledge_space_id=${selectedKbId.value}`,
+      { method: 'POST' }
+    )
+
+    if (!response.ok) {
+      const data = await response.json()
+      alert(data.detail || '解析失败')
+      return
+    }
+
+    const docIndex = documents.value.findIndex(d => d.id === docId)
+    if (docIndex !== -1) {
+      documents.value[docIndex].status = 'parsing'
+    }
+  } catch (error) {
+    alert('解析失败：' + (error.message || '网络错误'))
+  }
 }
 
 function formatDate(dateStr) {
@@ -661,6 +713,29 @@ onUnmounted(() => {
 .status-badge.failed {
   background: #fee2e2;
   color: #991b1b;
+}
+
+.btn-parse {
+  padding: 4px 12px;
+  background: transparent;
+  border: 1px solid #667eea;
+  color: #667eea;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  margin-right: 8px;
+  transition: all 0.2s;
+}
+
+.btn-parse:hover:not(.disabled) {
+  background: #ede9fe;
+}
+
+.btn-parse.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  border-color: #9ca3af;
+  color: #9ca3af;
 }
 
 .btn-delete {

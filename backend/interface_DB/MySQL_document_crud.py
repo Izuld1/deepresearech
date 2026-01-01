@@ -20,6 +20,7 @@ def create_document(
     file_type: str | None,
     storage_uri: str,
     uploaded_by: int | None,
+    status: str = "uploaded",
 ) -> Document:
     """
     创建文档记录（上传完成后立即调用）
