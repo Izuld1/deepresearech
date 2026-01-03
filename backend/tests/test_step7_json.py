@@ -1,8 +1,16 @@
-from utils.pickle_csp import load_result
+import pickle
+
+
+def load_result(cache_path: str):
+    """
+    反序列化加载执行结果
+    """
+    with open(cache_path, "rb") as f:
+        return pickle.load(f)
 
     
 if __name__ == "__main__":
-    result = load_result("cache/step4se_result.pkl")
+    result = load_result("backend/cache/step4se_result.pkl")
 
     print(result.keys())
     print("=============================")
@@ -40,9 +48,11 @@ if __name__ == "__main__":
     print("=============================")
     print("=============================")
     print("=============================")
-    print(result['sub_goal_results'][0]['result']['pool']["contexts"][0].keys())
-    print(result['sub_goal_results'][0]['result']['pool']["evidences"][0].keys())
+    print(result['sub_goal_results'][0]['result']['pool']["intent"])
+    # print(result['sub_goal_results'][0]['result']['pool']["contexts"][0].keys())
+    print(result['sub_goal_results'][0]['result']['pool']["contexts"][0]["source"])
+    # print(result['sub_goal_results'][0]['result']['pool']["evidences"][0].keys())
     print("=============================")
-    print(result['sub_goal_results'][0]['result']['pool']["contexts"])
+    # print(result['sub_goal_results'][0]['result']['pool']["contexts"])
     # for i in result :
     #     print(type(i))

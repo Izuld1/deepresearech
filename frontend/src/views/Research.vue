@@ -67,7 +67,11 @@ function connectToSSE(sessionId) {
 
   es.addEventListener('retrieval_finished', (event) => {
     const data = JSON.parse(event.data)
-    state.retrievals.push(data.payload.title)
+    state.retrievals.push({
+      title: data.payload.title,
+      source: data.payload.source || 'Unknown',
+      sub_goal_id: data.payload.sub_goal_id
+    })
   })
 
   es.addEventListener('assistant_chunk', (event) => {

@@ -11,12 +11,12 @@
       <div class="trace-label">检索结果</div>
       <div class="trace-cards">
         <div 
-          v-for="(title, index) in retrievals" 
+          v-for="(retrieval, index) in retrievals" 
           :key="index"
           class="trace-card"
         >
-          <div class="trace-card-title">{{ title }}</div>
-          <div class="trace-card-meta">来源：PubMed</div>
+          <div class="trace-card-title">{{ retrieval.title }}</div>
+          <div class="trace-card-meta">来源：{{ retrieval.source }}</div>
         </div>
       </div>
     </div>

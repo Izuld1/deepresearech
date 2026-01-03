@@ -173,65 +173,79 @@ async def run_fake_research(session_id: str, user_input: dict):
 
     # ======== 保留你写死的 retrieval_finished 事件（一个不删） ========
 
-    await asyncio.sleep(1)
-    await event_bus.emit(
-        sse_event(
-            "retrieval_finished",
-            {
-                "title": "明确腕骨骨折的主要类型及其诊断标准，为治疗方案的选择提供依据",
-                "source": "传统手法结合距下关节与内侧柱双稳定术治疗青少年柔性平足症的临床观察_曾广龙.pdf",
-                "sub_goal_id": "SG-1",
-            },
-        )
-    )
+    # await asyncio.sleep(1)
+    temp_step4_output = load_result("cache/step4_result.pkl")['sub_goal_results']
+    for i in range(len(temp_step4_output)):
+        for j in range(len(temp_step4_output[i]['result']['pool']["contexts"])):
+            await event_bus.emit(
+                sse_event(
+                    "retrieval_finished",
+                    {
+                        "title": temp_step4_output[i]['result']['pool']['intent'],
+                        "source": temp_step4_output[i]['result']['pool']['contexts'][j]['source'],
+                        "sub_goal_id": temp_step4_output[i]['sub_goal_id'],
+                    },
+                )
+            )
+        # await asyncio.sleep(1)
+    # await event_bus.emit(
+    #     sse_event(
+    #         "retrieval_finished",
+    #         {
+    #             "title": "明确腕骨骨折的主要类型及其诊断标准，为治疗方案的选择提供依据",
+    #             "source": "传统手法结合距下关节与内侧柱双稳定术治疗青少年柔性平足症的临床观察_曾广龙.pdf",
+    #             "sub_goal_id": "SG-1",
+    #         },
+    #     )
+    # )
 
-    await asyncio.sleep(1)
-    await event_bus.emit(
-        sse_event(
-            "retrieval_finished",
-            {
-                "title": "探讨保守治疗方法（如固定、牵引）在不同类型腕骨骨折中的适应症与疗效",
-                "source": "筋骨并重”理论在腕关节镜辅助治疗Herbert_B型舟骨骨折合并TFCC损伤术后康复中的应用_向往.pdf",
-                "sub_goal_id": "SG-1",
-            },
-        )
-    )
+    # await asyncio.sleep(1)
+    # await event_bus.emit(
+    #     sse_event(
+    #         "retrieval_finished",
+    #         {
+    #             "title": "探讨保守治疗方法（如固定、牵引）在不同类型腕骨骨折中的适应症与疗效",
+    #             "source": "筋骨并重”理论在腕关节镜辅助治疗Herbert_B型舟骨骨折合并TFCC损伤术后康复中的应用_向往.pdf",
+    #             "sub_goal_id": "SG-1",
+    #         },
+    #     )
+    # )
 
-    await asyncio.sleep(1)
-    await event_bus.emit(
-        sse_event(
-            "retrieval_finished",
-            {
-                "title": "梳理术后或保守治疗后的康复流程，关注功能恢复的时间线与评价指标",
-                "source": "记忆合金Ⅰ型钉脚固定器联合克氏针治疗经舟骨月骨周围背侧脱位的临床疗效研究_汤浩.pdf",
-                "sub_goal_id": "SG-1",
-            },
-        )
-    )
+    # await asyncio.sleep(1)
+    # await event_bus.emit(
+    #     sse_event(
+    #         "retrieval_finished",
+    #         {
+    #             "title": "梳理术后或保守治疗后的康复流程，关注功能恢复的时间线与评价指标",
+    #             "source": "记忆合金Ⅰ型钉脚固定器联合克氏针治疗经舟骨月骨周围背侧脱位的临床疗效研究_汤浩.pdf",
+    #             "sub_goal_id": "SG-1",
+    #         },
+    #     )
+    # )
 
-    await asyncio.sleep(1)
-    await event_bus.emit(
-        sse_event(
-            "retrieval_finished",
-            {
-                "title": "总结近三年内关于腕骨骨折治疗与康复的主要研究发现和发展方向",
-                "source": "手术切除跟舟骨桥后趾短伸肌转位和脂肪填塞的疗效对比_李春光.pdf",
-                "sub_goal_id": "SG-1",
-            },
-        )
-    )
+    # await asyncio.sleep(1)
+    # await event_bus.emit(
+    #     sse_event(
+    #         "retrieval_finished",
+    #         {
+    #             "title": "总结近三年内关于腕骨骨折治疗与康复的主要研究发现和发展方向",
+    #             "source": "手术切除跟舟骨桥后趾短伸肌转位和脂肪填塞的疗效对比_李春光.pdf",
+    #             "sub_goal_id": "SG-1",
+    #         },
+    #     )
+    # )
 
-    await asyncio.sleep(1)
-    await event_bus.emit(
-        sse_event(
-            "retrieval_finished",
-            {
-                "title": "总结近三年内关于腕骨骨折治疗与康复的主要研究发现和发展方向",
-                "source": "基于肌肉力学及肌电活动特征评估专用防护鞋及鞋垫治疗副舟骨综合征的有效性_程自申.pdf",
-                "sub_goal_id": "SG-1",
-            },
-        )
-    )
+    # await asyncio.sleep(1)
+    # await event_bus.emit(
+    #     sse_event(
+    #         "retrieval_finished",
+    #         {
+    #             "title": "总结近三年内关于腕骨骨折治疗与康复的主要研究发现和发展方向",
+    #             "source": "基于肌肉力学及肌电活动特征评估专用防护鞋及鞋垫治疗副舟骨综合征的有效性_程自申.pdf",
+    #             "sub_goal_id": "SG-1",
+    #         },
+    #     )
+    # )
 
     # =====================================================
     # Step 6: Draft Paragraphs
