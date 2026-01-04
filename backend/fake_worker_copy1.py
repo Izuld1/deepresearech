@@ -26,12 +26,12 @@ from steps.step6_draft import generate_paragraphs_for_sub_goals
 from tests.test_step7 import run_step7_global_edit
 
 from utils.pickle_csp import save_result, load_result, pretty
-
+from interface_DB.knowledge_service import search_know_ragflow_id
 
 # ============================================================
 # 全局运行模式控制
 # ============================================================
-USE_CACHE = True   # True = 回放模式 / False = 实时运行
+USE_CACHE = False   # True = 回放模式 / False = 实时运行
 
 
 # ============================================================
@@ -49,9 +49,10 @@ def get_clarification_queue(session_id: str) -> asyncio.Queue:
 # ============================================================
 # 主流程
 # ============================================================
-async def run_fake_research(session_id: str, user_input: dict):
+async def run_fake_research(session_id: str, user_input: dict, search_list: list):
 
     print("🧠 Fake research started")
+    print("search_list:", search_list)
     print("Session ID:", session_id)
 
     gateway = build_qwen_gateway_from_env()
@@ -65,6 +66,13 @@ async def run_fake_research(session_id: str, user_input: dict):
 
     state = ClarificationState()
     user_text = user_input["query"]
+    user_id = user_input["user_id"]
+    knw_rag_list = []
+    for i in search_list:
+        knw_ragflow_id = search_know_ragflow_id(user_id=user_id,knowledge_space_id=i)
+        if knw_ragflow_id:
+            knw_rag_list.append(knw_ragflow_id)
+
 
     while True:
         result = clarification_step(gateway, state, user_text)
@@ -166,6 +174,7 @@ async def run_fake_research(session_id: str, user_input: dict):
         step4_result = load_result("cache/step4_result.pkl")
     else:
         step4_result = run_step4(
+            kb_ids=knw_rag_list,
             gateway=gateway,
             sub_goals=subgoals_result["sub_goals"],
         )
@@ -177,6 +186,7 @@ async def run_fake_research(session_id: str, user_input: dict):
     temp_step4_output = load_result("cache/step4_result.pkl")['sub_goal_results']
     for i in range(len(temp_step4_output)):
         for j in range(len(temp_step4_output[i]['result']['pool']["contexts"])):
+            print()
             await event_bus.emit(
                 sse_event(
                     "retrieval_finished",

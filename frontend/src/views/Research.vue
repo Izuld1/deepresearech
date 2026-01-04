@@ -26,13 +26,15 @@
     <InputBar 
       @send="handleSend"
       :disabled="isProcessing"
+      :kbSelectorDisabled="kbSelectorDisabled"
     />
   </div>
 </template>
 
 <script setup>
-import { reactive, computed } from 'vue'
+import { reactive, computed, ref } from 'vue'
 import { marked } from 'marked'
+import { apiRequest, authUtils } from '../utils/auth.js'
 import Sidebar from '../components/Sidebar.vue'
 import ChatMessages from '../components/ChatMessages.vue'
 import TracePanel from '../components/TracePanel.vue'
@@ -48,6 +50,8 @@ const state = reactive({
   awaitingClarification: false
 })
 
+const kbSelectorDisabled = ref(false)
+
 const parsedFinalReport = computed(() => {
   return state.finalReport ? marked.parse(state.finalReport) : ''
 })
@@ -57,62 +61,105 @@ const isProcessing = computed(() => {
 })
 
 function connectToSSE(sessionId) {
+  const token = authUtils.getToken()
   const sseUrl = `http://localhost:8000/api/research/stream?session_id=${sessionId}`
-  const es = new EventSource(sseUrl)
+  
+  // EventSource 不支持自定义 headers，需要通过 URL 传递 token 或使用 fetch + ReadableStream
+  // 这里使用 fetch 实现 SSE 连接以支持 Authorization header
+  const connectSSE = async () => {
+    try {
+      const response = await fetch(sseUrl, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'text/event-stream'
+        }
+      })
 
-  es.addEventListener('phase_changed', (event) => {
-    const data = JSON.parse(event.data)
-    state.phase = data.payload.phase
-  })
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
 
-  es.addEventListener('retrieval_finished', (event) => {
-    const data = JSON.parse(event.data)
-    state.retrievals.push({
-      title: data.payload.title,
-      source: data.payload.source || 'Unknown',
-      sub_goal_id: data.payload.sub_goal_id
-    })
-  })
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
 
-  es.addEventListener('assistant_chunk', (event) => {
-    const data = JSON.parse(event.data)
-    const chunk = data.payload.content
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() || ''
 
-    const lastMsg = state.messages[state.messages.length - 1]
-    if (lastMsg && lastMsg.role === 'assistant') {
-      lastMsg.content += chunk
-    } else {
-      state.messages.push({ role: 'assistant', content: chunk })
+        for (const line of lines) {
+          if (line.startsWith('event:')) {
+            const eventType = line.slice(6).trim()
+            const nextLine = lines[lines.indexOf(line) + 1]
+            if (nextLine && nextLine.startsWith('data:')) {
+              const eventData = nextLine.slice(5).trim()
+              handleSSEEvent(eventType, eventData)
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('SSE connection error:', error)
     }
-  })
+  }
 
-  es.addEventListener('clarification_prompt', (event) => {
-    const data = JSON.parse(event.data)
-    console.log('🔔 收到澄清问题，设置 awaitingClarification = true')
-    state.awaitingClarification = true
-    state.messages.push({
-      role: 'assistant',
-      content: data.payload.question
-    })
-    console.log('当前状态:', { awaitingClarification: state.awaitingClarification, phase: state.phase })
-  })
+  connectSSE()
+}
 
-  es.addEventListener('final_output', (event) => {
-    const data = JSON.parse(event.data)
-    state.finalReport = data.payload.content
-    es.close()
-  })
-
-  es.onerror = (err) => {
-    console.error('SSE error:', err)
-    es.close()
+function handleSSEEvent(eventType, eventData) {
+  try {
+    const data = JSON.parse(eventData)
+    
+    switch(eventType) {
+      case 'phase_changed':
+        state.phase = data.payload.phase
+        break
+        
+      case 'retrieval_finished':
+        state.retrievals.push({
+          title: data.payload.title,
+          source: data.payload.source || 'Unknown',
+          sub_goal_id: data.payload.sub_goal_id
+        })
+        break
+        
+      case 'assistant_chunk':
+        const chunk = data.payload.content
+        const lastMsg = state.messages[state.messages.length - 1]
+        if (lastMsg && lastMsg.role === 'assistant') {
+          lastMsg.content += chunk
+        } else {
+          state.messages.push({ role: 'assistant', content: chunk })
+        }
+        break
+        
+      case 'clarification_prompt':
+        console.log('🔔 收到澄清问题，设置 awaitingClarification = true')
+        state.awaitingClarification = true
+        state.messages.push({
+          role: 'assistant',
+          content: data.payload.question
+        })
+        console.log('当前状态:', { awaitingClarification: state.awaitingClarification, phase: state.phase })
+        break
+        
+      case 'final_output':
+        state.finalReport = data.payload.content
+        break
+    }
+  } catch (error) {
+    console.error('Error handling SSE event:', error)
   }
 }
 
-async function handleSend(text) {
+async function handleSend(payload) {
+  const text = typeof payload === 'string' ? payload : payload.text
+  const selectedKbIds = typeof payload === 'object' ? payload.selectedKbIds : []
+
   if (!text.trim()) return
 
   console.log('📤 发送消息:', text)
+  console.log('📋 选中的知识库:', selectedKbIds)
   console.log('当前状态:', { 
     sessionId: state.sessionId, 
     awaitingClarification: state.awaitingClarification,
@@ -127,14 +174,18 @@ async function handleSend(text) {
     state.finalReport = ''
     state.awaitingClarification = false
 
-    const resp = await fetch('http://localhost:8000/api/research/start', {
+    const resp = await apiRequest('http://localhost:8000/api/research/start', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: text })
+      body: JSON.stringify({ 
+        user_input: text,
+        search_list: selectedKbIds
+      })
     })
 
     const data = await resp.json()
     state.sessionId = data.session_id
+
+    kbSelectorDisabled.value = true
 
     connectToSSE(state.sessionId)
     return
@@ -144,9 +195,8 @@ async function handleSend(text) {
     console.log('✅ 进入澄清分支，发送澄清答案')
     state.awaitingClarification = false
 
-    await fetch('http://localhost:8000/api/research/clarification', {
+    await apiRequest('http://localhost:8000/api/research/clarification', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         session_id: state.sessionId,
         answer: text

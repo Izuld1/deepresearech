@@ -188,6 +188,7 @@ const errorMsg = ref('')
 const selectedFile = ref(null)
 const isUploading = ref(false)
 const uploadProgress = ref(0)
+let pollingInterval = null
 
 const newKb = ref({
   name: '',
@@ -395,26 +396,26 @@ function getStatusText(status) {
   const statusMap = {
     uploaded: '已上传',
     parsing: '解析中',
-    parsed: '已解析',
     indexed: '已索引',
+    parsed: '已解析',
     failed: '失败'
   }
-  return statusMap[status] || status
+  return statusMap[status] || '未知状态'
 }
 
 function getParseButtonText(status) {
   const textMap = {
     uploaded: '解析',
     parsing: '解析中…',
+    indexed: '解析',
     parsed: '已解析',
-    indexed: '已解析',
     failed: '重新解析'
   }
   return textMap[status] || '解析'
 }
 
 function isParseDisabled(status) {
-  return status === 'parsing' || status === 'indexed'
+  return status === 'parsing' || status === 'parsed'
 }
 
 async function parseDocument(docId, currentStatus) {
@@ -437,10 +438,7 @@ async function parseDocument(docId, currentStatus) {
       return
     }
 
-    const docIndex = documents.value.findIndex(d => d.id === docId)
-    if (docIndex !== -1) {
-      documents.value[docIndex].status = 'parsing'
-    }
+    await loadDocuments()
   } catch (error) {
     alert('解析失败：' + (error.message || '网络错误'))
   }
@@ -458,13 +456,31 @@ function handleClickOutside(event) {
   }
 }
 
+function startPolling() {
+  if (pollingInterval) return
+  pollingInterval = setInterval(() => {
+    if (selectedKbId.value) {
+      loadDocuments()
+    }
+  }, 3000)
+}
+
+function stopPolling() {
+  if (pollingInterval) {
+    clearInterval(pollingInterval)
+    pollingInterval = null
+  }
+}
+
 onMounted(() => {
   loadKnowledgeSpaces()
   document.addEventListener('click', handleClickOutside)
+  startPolling()
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
+  stopPolling()
 })
 </script>
 

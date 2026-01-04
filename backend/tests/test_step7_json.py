@@ -10,7 +10,7 @@ def load_result(cache_path: str):
 
     
 if __name__ == "__main__":
-    result = load_result("backend/cache/step4se_result.pkl")
+    result = load_result("backend/cache/step4_result.pkl")
 
     print(result.keys())
     print("=============================")

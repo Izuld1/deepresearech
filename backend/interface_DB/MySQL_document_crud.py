@@ -104,6 +104,17 @@ def get_document(
         )
     )
 
+from typing import Optional
+# =========================
+# 状态白名单（唯一真源）
+# =========================
+ALLOWED_STATUSES = {
+    "uploaded",
+    "indexed",
+    "parsing",
+    "parsed",
+    "failed",
+}
 
 # =========================
 # Update - 状态 / 错误信息
@@ -113,31 +124,49 @@ def update_document_status(
     *,
     document_id: int,
     status: str,
-    error_message: str | None = None,
+    error_message: Optional[str] = None,
 ) -> Document:
     """
-    更新文档处理状态
+    更新文档处理状态（唯一入口）
+
+    合法状态：
     - uploaded
-    - parsed
     - indexed
+    - parsing
+    - parsed
     - failed
+
+    规则：
+    - status 必须在白名单中
+    - failed 状态允许写 error_message
+    - 非 failed 状态会清空 error_message
     """
+
+    # ---------- 1. 状态合法性校验 ----------
+    if status not in ALLOWED_STATUSES:
+        raise ValueError(f"Invalid document status: {status}")
+
+    # ---------- 2. 查询文档 ----------
     doc = db.scalar(
         select(Document).where(Document.id == document_id)
     )
     if not doc:
         raise ValueError("Document not found")
 
+    # ---------- 3. 状态写入 ----------
     doc.status = status
 
-    # 失败时写入错误信息
-    if error_message is not None:
+    # ---------- 4. 错误信息规则 ----------
+    if status == "failed":
         doc.error_message = error_message
     else:
+        # 非失败状态，强制清空错误信息
         doc.error_message = None
 
+    # ---------- 5. 提交 ----------
     db.commit()
     db.refresh(doc)
+
     return doc
 
 
@@ -190,3 +219,23 @@ def delete_document(
 
     db.delete(doc)
     db.commit()
+def get_filename_by_ragflow_document_id(
+    db: Session,
+    *,
+    ragflow_document_id: str,
+) -> str | None:
+    """
+    通过 ragflow_document_id 查询 filename
+    - 用于 RAGFlow chunk / document 回溯
+    """
+    return db.scalar(
+        select(Document.filename)
+        .where(Document.ragflow_document_id == ragflow_document_id)
+    )
+
+
+
+
+
+
+

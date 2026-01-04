@@ -52,6 +52,7 @@ from interface_DB.knowledge_service import (
     rename_document_service,
     delete_document_service,
     parse_document_service,
+    check_parse_status_job,
 )
 
 # =========================================================
@@ -140,8 +141,32 @@ async def api_me(
 # =========================================================
 # Research 接口（暂不强制鉴权）
 # =========================================================
+# @app.post("/api/research/start")
+# async def start_research(request: Request):
+#     try:
+#         body = await request.json()
+#     except Exception:
+#         body = {}
+
+#     session_id = str(uuid.uuid4())
+
+#     asyncio.create_task(
+#         run_fake_research(
+#             session_id=session_id,
+#             user_input=body,
+#             search_list=body.get("search_list", []),
+#         )
+#     )
+
+#     return {
+#         "session_id": session_id,
+#         "status": "clarification",
+#     }
 @app.post("/api/research/start")
-async def start_research(request: Request):
+async def start_research(
+    request: Request,
+    user: User = Depends(get_current_user_from_header),  # ✅ 引入用户上下文
+):
     try:
         body = await request.json()
     except Exception:
@@ -149,10 +174,18 @@ async def start_research(request: Request):
 
     session_id = str(uuid.uuid4())
 
+    # ✅ 向后兼容的拆分逻辑
+    user_input = body.get("user_input")
+    search_list = body.get("search_list", [])
+
     asyncio.create_task(
         run_fake_research(
             session_id=session_id,
-            user_input=body,
+            user_input={
+                "query": user_input,
+                "user_id": user.id,          # ✅ 明确传递用户身份
+            },
+            search_list=search_list,
         )
     )
 
@@ -162,12 +195,39 @@ async def start_research(request: Request):
     }
 
 
+# @app.post("/api/research/clarification")
+# async def research_clarification(request: Request):
+#     body = await request.json()
+
+#     session_id = body.get("session_id")
+#     answer = body.get("answer")
+
+#     queue = get_clarification_queue(session_id)
+#     await queue.put(answer)
+
+#     await event_bus.emit(
+#         sse_event(
+#             "clarification_ack",
+#             {
+#                 "session_id": session_id,
+#                 "answer": answer,
+#             },
+#         )
+#     )
+
+#     return {"status": "ok"}
 @app.post("/api/research/clarification")
-async def research_clarification(request: Request):
+async def research_clarification(
+    request: Request,
+    user: User = Depends(get_current_user_from_header),  # ✅ 新增
+):
     body = await request.json()
 
     session_id = body.get("session_id")
     answer = body.get("answer")
+
+    # ⚠️ 现在只保证“已登录用户”
+    # 后续可以校验 session_id 是否属于 user.id
 
     queue = get_clarification_queue(session_id)
     await queue.put(answer)
@@ -185,11 +245,24 @@ async def research_clarification(request: Request):
     return {"status": "ok"}
 
 
+# @app.get("/api/research/stream")
+# async def research_stream(
+#     request: Request,
+#     session_id: str,
+# ):
+#     return StreamingResponse(
+#         event_bus.stream(),
+#         media_type="text/event-stream",
+#     )
 @app.get("/api/research/stream")
 async def research_stream(
     request: Request,
     session_id: str,
+    user: User = Depends(get_current_user_from_header),  # ✅ 新增
 ):
+    # ⚠️ 当前版本只做“登录态校验”
+    # 后续可做：session_id → user_id 映射校验
+
     return StreamingResponse(
         event_bus.stream(),
         media_type="text/event-stream",
@@ -353,6 +426,9 @@ async def api_list_documents(
 ):
     db = SessionLocal()
     try:
+        check_parse_status_job(db,
+                               user_id=user.id,
+                               knowledge_space_id=knowledge_space_id)  # 检查解析状态
         return list_documents_service(
             db,
             knowledge_space_id=knowledge_space_id,
@@ -360,6 +436,10 @@ async def api_list_documents(
         )
     finally:
         db.close()
+
+
+
+
 
 
 @app.put("/api/documents/{document_id}")

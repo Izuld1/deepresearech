@@ -85,7 +85,10 @@ def write_evidence_bound_paragraph(
     serialized = []
     for idx, ev in enumerate(evidence_pool, start=1):
         text = ev.get("text", "").strip()
-        source = ev.get("source", "").strip()
+        # source = ev.get("source", "").strip()
+        source = (ev.get("source") or "").strip()
+        
+
         if text:
             serialized.append(
                 f"[Evidence {idx} | Source: {source}]\n{text}"

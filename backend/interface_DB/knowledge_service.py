@@ -488,15 +488,23 @@ def parse_document_service(
     # -----------------------------
     try:
         rag = _get_ragflow_client()
-        doc_service = rag.documents
+        dataset = rag.list_datasets(id=dataset_id)
+        if not dataset:
+            raise ValueError("RAGFlow dataset not found")
+        dataset = dataset[0]
+        # docc = dataset.list_documents(id=ragflow_doc_id)
+        # if not docc:
+        #     raise ValueError("RAGFlow document not found")
+        result = dataset.async_parse_documents(document_ids=[ragflow_doc_id])
+        # doc_service = rag.documents
 
-        result = doc_service.parse(
-            dataset_id=dataset_id,
-            document_ids=[ragflow_doc_id],
-        )
+        # result = doc_service.parse(
+        #     dataset_id=dataset_id,
+        #     document_ids=[ragflow_doc_id],
+        # )
 
-        # 只要 parse 没抛异常，就认为触发成功
-        # 不在这里判断最终状态
+        # # 只要 parse 没抛异常，就认为触发成功
+        # # 不在这里判断最终状态
         print(f"[PARSE TRIGGERED] result={result}")
 
         return update_document_status(
@@ -513,3 +521,213 @@ def parse_document_service(
             error_message=str(e)
         )
         raise ValueError(f"Parse document failed: {e}") from e
+
+
+
+
+from sqlalchemy.orm import Session
+# from sqlalchemy import select
+from interface_DB.MySQL_knowledge_space import KnowledgeSpace
+# 本地认为“需要被 job 同步纠正”的状态
+SYNC_TARGET_STATUSES = {"parsing", "failed"}
+
+# def check_parse_status_job(
+#     db: Session,
+#     user_id: int,
+#     knowledge_space_id: int,
+# ) -> None:
+#     """
+#     最小可用函数（MVP）：
+#     - 仅查询 MySQL
+#     - 查询指定 knowledge_space_id 下的所有文档
+#     - 打印文档的关键信息
+#     - 不更新、不校验、不联动 RAGFlow
+#     """
+
+#     docs = db.scalars(
+#         select(Document).where(
+#             Document.knowledge_space_id == knowledge_space_id
+#         )
+#     ).all()
+
+#     if not docs:
+#         print(f"[DOCS] knowledge_space_id={knowledge_space_id} has no documents")
+#         return
+
+#     print(f"[DOCS] knowledge_space_id={knowledge_space_id}, count={len(docs)}")
+
+#     for doc in docs:
+#         print(
+#             "[DOC]",
+#             f"id={doc.id}",
+#             f"filename={doc.filename}",
+#             f"status={doc.status}",
+#             f"ragflow_document_id={doc.ragflow_document_id}",
+#         )
+#     ks = get_knowledge_space(
+#         db,
+#         knowledge_space_id=knowledge_space_id,
+#         owner_id=user_id,
+#     )
+#     # if not ks:
+#     #     raise HTTPException(404, "Knowledge space not found")
+
+#     ragflow_knowledge_id = ks.ragflow_knowledge_id
+#     print(ragflow_knowledge_id)
+#     rag = _get_ragflow_client()
+#     dataset = rag.list_datasets(id=ragflow_knowledge_id)
+#     if not dataset:
+#         print(f"[RAGFLOW SYNC SKIP] knowledge_space_id={knowledge_space_id} not found in RAGFlow")
+#         return
+#     dataset = dataset[0]
+    
+#     try:
+#         # doc = docs[0]
+#         for doc in docs:
+#             ragflow_docs = dataset.list_documents(id=doc.ragflow_document_id)
+#             doc_ = ragflow_docs[0]
+#             print(
+#                 "[RAGFLOW DOC]",
+#                 f"id={doc_.id}",
+#                 f"status={getattr(doc_, 'status', 'N/A')}",
+#                 f"process_msg={getattr(doc_, 'process_msg', 'N/A')}",
+#                 f"run={getattr(doc_, 'run', 'N/A')}",
+#                 f"error_message={getattr(doc_, 'error_message', 'N/A')}",
+#             )   
+
+#         # if not ragflow_docs:
+#         #     print(f"[RAGFLOW DOCS] No documents found in RAGFlow for document_id={doc.id}")
+#         #     return
+#         # ragflow_doc = ragflow_docs[0]
+#         # print(
+#         #     "[RAGFLOW DOC]",
+#         #     f"id={ragflow_doc.id}",
+#         #     f"status={getattr(ragflow_doc, 'status', 'N/A')}",
+#         #     f"error_message={getattr(ragflow_doc, 'error_message', 'N/A')}",
+#         # )
+#     except Exception as e:
+#         print(f"[RAGFLOW SYNC ERROR] Failed to fetch document from RAGFlow: {e}")
+        
+def check_parse_status_job(
+    db: Session,
+    user_id: int,
+    knowledge_space_id: int,
+) -> None:
+    """
+    当前规则：
+    - 仅处理 MySQL 中 status == 'parsing' 的文档
+    - 若对应 RAGFlow.run == 'DONE'，则更新为 parsed
+    """
+
+    # 1️⃣ 只查当前知识库下、状态为 parsing 的文档
+    docs = db.scalars(
+        select(Document).where(
+            Document.knowledge_space_id == knowledge_space_id,
+            Document.status == "parsing",
+        )
+    ).all()
+
+    if not docs:
+        print(f"[SYNC] no parsing docs in knowledge_space_id={knowledge_space_id}")
+        return
+
+    # 2️⃣ 查询知识库（用于拿 ragflow_knowledge_id）
+    ks = get_knowledge_space(
+        db,
+        knowledge_space_id=knowledge_space_id,
+        owner_id=user_id,
+    )
+    if not ks:
+        print(f"[SYNC] knowledge_space_id={knowledge_space_id} not found or no permission")
+        return
+
+    ragflow_knowledge_id = ks.ragflow_knowledge_id
+    print(f"[SYNC] ragflow_knowledge_id={ragflow_knowledge_id}")
+
+    # 3️⃣ 获取 RAGFlow dataset
+    rag = _get_ragflow_client()
+    datasets = rag.list_datasets(id=ragflow_knowledge_id)
+    if not datasets:
+        print(f"[SYNC] dataset not found in RAGFlow: {ragflow_knowledge_id}")
+        return
+
+    dataset = datasets[0]
+
+    # 4️⃣ 对每一个 parsing 文档做最小判断
+    for doc in docs:
+        try:
+            ragflow_docs = dataset.list_documents(id=doc.ragflow_document_id)
+            if not ragflow_docs:
+                print(f"[RAGFLOW] document not found: {doc.ragflow_document_id}")
+                continue
+
+            rag_doc = ragflow_docs[0]
+            run_status = getattr(rag_doc, "run", None)
+
+            # —— 强制打印（你现在调试阶段非常有价值）
+            print(
+                "[RAGFLOW DOC]",
+                f"id={rag_doc.id}",
+                f"run={run_status}",
+                f"mysql_status={doc.status}",
+            )
+
+            # 5️⃣ 唯一的状态映射规则
+            if run_status == "DONE":
+                print(
+                    f"[SYNC UPDATE] doc_id={doc.id} "
+                    f"mysql: parsing → parsed"
+                )
+                update_document_status(
+                    db,
+                    document_id=doc.id,
+                    status="parsed",
+                )
+
+        except Exception as e:
+            print(
+                f"[RAGFLOW ERROR] doc_id={doc.id} "
+                f"ragflow_id={doc.ragflow_document_id} "
+                f"error={e}"
+            )
+
+
+def search_know_ragflow_id(user_id: int, knowledge_space_id: int) -> str:
+    """
+    根据 knowledge_space_id + user_id
+    查询对应的 ragflow_knowledge_id
+
+    语义：
+    - 用于确认该知识库是否属于当前用户
+    - 返回 ragflow_knowledge_id
+    - 若不存在 / 无权限 / 未绑定 RAGFlow，则抛出异常
+    """
+    from interface_DB.MySQL_db import SessionLocal
+    from sqlalchemy import select
+    from interface_DB.MySQL_knowledge_space import KnowledgeSpace
+
+    db = SessionLocal()
+    try:
+        ks = db.scalar(
+            select(KnowledgeSpace).where(
+                KnowledgeSpace.id == knowledge_space_id,
+                KnowledgeSpace.owner_id == user_id,
+            )
+        )
+
+        if not ks:
+            raise ValueError(
+                f"KnowledgeSpace not found or no permission: "
+                f"knowledge_space_id={knowledge_space_id}, user_id={user_id}"
+            )
+
+        if not ks.ragflow_knowledge_id:
+            raise ValueError(
+                f"KnowledgeSpace not bound to RAGFlow: "
+                f"knowledge_space_id={knowledge_space_id}"
+            )
+
+        return ks.ragflow_knowledge_id
+
+    finally:
+        db.close()

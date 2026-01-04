@@ -39,8 +39,13 @@ class Document(Base):
         nullable=False,
     )
 
+    # status = Column(
+    #     Enum("uploaded", "parsed", "indexed", "parsing", "failed"),
+    #     nullable=False,
+    #     default="uploaded",
+    # )
     status = Column(
-        Enum("uploaded", "parsed", "indexed", "failed"),
+        String(32),
         nullable=False,
         default="uploaded",
     )

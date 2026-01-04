@@ -18,7 +18,8 @@ from collections import Counter
 from typing import Dict, List
 from collections import Counter
 from typing import Dict, List, Any
-
+from interface_DB.MySQL_document_crud import get_filename_by_ragflow_document_id
+from interface_DB.MySQL_db import SessionLocal
 
 class RAGFlowAdapter:
     """
@@ -97,11 +98,15 @@ class RAGFlowAdapter:
 
         # ---------- 3. 构造 LLM Context ----------
         contexts = []
+        db = SessionLocal()
+        temp_source = get_filename_by_ragflow_document_id(db, ragflow_document_id=self._get_field(c, "document_id", ""))
+        if temp_source is None :
+            temp_source = "未知来源"
         for item_wrap in filtered_items[: self.max_contexts]:
             c = item_wrap["item"]
             contexts.append({
                 "text": self._get_field(c, "content", "").strip(),
-                "source": self._get_field(c, "document_name", "未知文档"),
+                "source": temp_source,
             })
 
         # ---------- 4. 构造 Evidence ----------
@@ -109,7 +114,7 @@ class RAGFlowAdapter:
         for item_wrap in filtered_items:
             c = item_wrap["item"]
             evidences.append({
-                "doc_name": self._get_field(c, "document_name", "未知文档"),
+                "doc_name": get_filename_by_ragflow_document_id(db, ragflow_document_id=self._get_field(c, "document_id", "")),
                 "doc_id": self._get_field(c, "document_id", ""),
                 "chunk_id": self._get_field(c, "id", ""),
                 "hit_count": item_wrap["_hit_count"],
@@ -121,7 +126,7 @@ class RAGFlowAdapter:
         # ---------- 5. Meta 信息 ----------
         doc_counter = Counter()
         for item_wrap in filtered_items:
-            doc_name = self._get_field(item_wrap["item"], "document_name", "未知文档")
+            doc_name = get_filename_by_ragflow_document_id(db, ragflow_document_id=self._get_field(c, "document_id", ""))
             doc_counter[doc_name] += 1
 
         meta = {
@@ -142,6 +147,8 @@ class RAGFlowAdapter:
             "meta": meta,
         }
     
+
+
 import json
 from ragflow_sdk import RAGFlow
 
@@ -161,13 +168,15 @@ def search_list_ragflow(query_hints: List[str], kb_ids: List[str] = ["腕骨骨�
     results = []
     for i in range(len(query_hints)):
         for j in range(len(kb_ids)):
-            dataset = rag_object.list_datasets(name=kb_ids[j])[0]
+            
+            dataset = rag_object.list_datasets(id=kb_ids[j])[0]
             # 获取单次检索的 Response 实例列表（有效数据）
             single_retrieve_result = rag_object.retrieve(
                 dataset_ids=[dataset.id],
                 question=query_hints[i],
                 keyword = True
             )
+            # print(single_retrieve_result)
             # 关键修正：直接 extend 保留所有 Response 实例，不做字典过滤
             results.extend(single_retrieve_result)
 
@@ -177,7 +186,14 @@ def search_list_ragflow(query_hints: List[str], kb_ids: List[str] = ["腕骨骨�
     )
     adapted = adapter.adapt(results)
     return adapted
-
+def ceshi() :
+    current_intent= "PM2.5 炎症 抑郁",
+    query_hints=[
+            "骨折",
+            "治疗"
+        ]
+    search_list_ragflow(query_hints)
+# ceshi()
 # query_hints = [
 #         "腕骨骨折 康复效果评估 DASH评分 肌力 活动度",
 #         "腕骨骨折 康复 评价指标 功能评分"

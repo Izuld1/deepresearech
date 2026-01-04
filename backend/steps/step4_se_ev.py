@@ -11,6 +11,7 @@ def run_step4_for_subgoal(
     *,
     gateway: RetrievalGateway,
     sub_goal: Dict[str, Any],
+    kb_ids,
     # aspects: List[str],
     max_rounds: int = 3,
     size: int = 10,
@@ -30,6 +31,7 @@ def run_step4_for_subgoal(
         # ===== Step 4A: Retrieve =====
         retrieval_result = run_retrieval_for_subgoal(
             # gateway=gateway,
+            kb_ids=kb_ids,
             sub_goal=sub_goal,
             size=size,
         )
@@ -129,6 +131,7 @@ def run_step4_for_subgoal(
             # ===== Step 4A: Retrieve =====
             retrieval_result = run_retrieval_for_subgoal(
                 # gateway=gateway,
+                kb_ids=kb_ids,
                 sub_goal=sub_goal,
                 size=size,
             )
@@ -233,6 +236,7 @@ def run_step4_for_subgoal(
 
 def run_step4(
     *,
+    kb_ids,
     gateway: RetrievalGateway,
     sub_goals: List[Dict[str, Any]],
     # aspect_map: Dict[str, List[str]],
@@ -251,6 +255,7 @@ def run_step4(
         print(f"Running Step 4 for sub-goal {sg_id}...")
 
         result = run_step4_for_subgoal(
+            kb_ids=kb_ids,
             gateway=gateway,
             sub_goal=sg,
             # aspects=aspect_map.get(sg_id, []),
