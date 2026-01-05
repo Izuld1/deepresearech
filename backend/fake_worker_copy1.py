@@ -31,7 +31,7 @@ from interface_DB.knowledge_service import search_know_ragflow_id
 # ============================================================
 # 全局运行模式控制
 # ============================================================
-USE_CACHE = False   # True = 回放模式 / False = 实时运行
+USE_CACHE = True   # True = 回放模式 / False = 实时运行
 
 
 # ============================================================
@@ -184,15 +184,26 @@ async def run_fake_research(session_id: str, user_input: dict, search_list: list
 
     # await asyncio.sleep(1)
     temp_step4_output = load_result("cache/step4_result.pkl")['sub_goal_results']
+    # for i in range(len(temp_step4_output)):
+    #     for j in range(len(temp_step4_output[i]['result']['pool']["contexts"])):
+    #         print("title", temp_step4_output[i]['result']['pool']['intent'],temp_step4_output[i]['result']['pool']['contexts'][j]['source'])
+    # print('\n\n\n')
     for i in range(len(temp_step4_output)):
+        source_list = []
         for j in range(len(temp_step4_output[i]['result']['pool']["contexts"])):
-            print()
+            source_list.append(temp_step4_output[i]['result']['pool']['contexts'][j]['source'])
+        # print('\n\n\n')
+        # print(len(source_list),source_list)
+        source_list = list(set(source_list))
+        # print(len(source_list),source_list)
+        for j in source_list :
+            # print(temp_step4_output[i]['result']['pool']['contexts'][j]['source'])
             await event_bus.emit(
                 sse_event(
                     "retrieval_finished",
                     {
                         "title": temp_step4_output[i]['result']['pool']['intent'],
-                        "source": temp_step4_output[i]['result']['pool']['contexts'][j]['source'],
+                        "source": j,
                         "sub_goal_id": temp_step4_output[i]['sub_goal_id'],
                     },
                 )

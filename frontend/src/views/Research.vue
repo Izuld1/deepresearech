@@ -87,15 +87,19 @@ function connectToSSE(sessionId) {
         const lines = buffer.split('\n')
         buffer = lines.pop() || ''
 
-        for (const line of lines) {
+        let i = 0
+        while (i < lines.length) {
+          const line = lines[i]
           if (line.startsWith('event:')) {
             const eventType = line.slice(6).trim()
-            const nextLine = lines[lines.indexOf(line) + 1]
-            if (nextLine && nextLine.startsWith('data:')) {
-              const eventData = nextLine.slice(5).trim()
+            if (i + 1 < lines.length && lines[i + 1].startsWith('data:')) {
+              const eventData = lines[i + 1].slice(5).trim()
               handleSSEEvent(eventType, eventData)
+              i += 2
+              continue
             }
           }
+          i++
         }
       }
     } catch (error) {
@@ -116,11 +120,17 @@ function handleSSEEvent(eventType, eventData) {
         break
         
       case 'retrieval_finished':
+        console.log('📥 收到检索结果:', {
+          title: data.payload.title,
+          source: data.payload.source,
+          sub_goal_id: data.payload.sub_goal_id
+        })
         state.retrievals.push({
           title: data.payload.title,
           source: data.payload.source || 'Unknown',
           sub_goal_id: data.payload.sub_goal_id
         })
+        console.log('📊 当前检索列表数量:', state.retrievals.length)
         break
         
       case 'assistant_chunk':
